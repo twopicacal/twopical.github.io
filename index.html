@@ -9,49 +9,98 @@
             font-family: Arial, sans-serif;
             text-align: center;
             margin: 50px;
+            background-color: #121212;
+            color: white;
         }
         button {
             margin: 5px;
             padding: 10px 20px;
             font-size: 16px;
         }
+        .player-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .progress-container {
+            display: flex;
+            align-items: center;
+            width: 80%;
+            margin-top: 10px;
+        }
+        .progress-bar {
+            flex-grow: 1;
+            height: 5px;
+            background: gray;
+            position: relative;
+            cursor: pointer;
+        }
+        .progress {
+            height: 100%;
+            background: green;
+            width: 0%;
+        }
+        .time {
+            width: 50px;
+            text-align: center;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <h1>MP3 Player with Upload</h1>
     <input type="file" id="fileInput" accept="audio/mp3" multiple>
-    <br><br>
-    <audio id="audioPlayer" controls></audio>
-    <br><br>
-    <button onclick="prevTrack()">Back</button>
-    <button onclick="togglePlayPause()">Play/Pause</button>
-    <button onclick="nextTrack()">Next</button>
+    <div class="player-container">
+        <audio id="audioPlayer"></audio>
+        <div class="progress-container">
+            <span class="time" id="currentTime">0:00</span>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress" id="progress"></div>
+            </div>
+            <span class="time" id="duration">0:00</span>
+        </div>
+        <br>
+        <button onclick="prevTrack()">Back</button>
+        <button onclick="togglePlayPause()">Play/Pause</button>
+        <button onclick="nextTrack()">Next</button>
+    </div>
     
     <script>
         let audioPlayer = document.getElementById("audioPlayer");
         let fileInput = document.getElementById("fileInput");
+        let progressBar = document.getElementById("progressBar");
+        let progress = document.getElementById("progress");
+        let currentTimeEl = document.getElementById("currentTime");
+        let durationEl = document.getElementById("duration");
         let playlist = [];
         let currentTrackIndex = 0;
 
         fileInput.addEventListener("change", function(event) {
             let files = Array.from(event.target.files);
             files.forEach(file => {
-                let reader = new FileReader();
-                reader.onload = function(e) {
-                    playlist.push({ name: file.name, data: e.target.result });
+                let formData = new FormData();
+                formData.append("file", file);
+
+                fetch("/upload", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    playlist.push({ name: file.name, url: data.fileUrl });
                     if (playlist.length === 1) {
                         currentTrackIndex = 0;
                         loadTrack(currentTrackIndex);
                     }
-                    savePlaylist();
-                };
-                reader.readAsDataURL(file);
+                })
+                .catch(error => console.error("Upload failed:", error));
             });
         });
 
         function loadTrack(index) {
             if (playlist.length > 0) {
-                audioPlayer.src = playlist[index].data;
+                audioPlayer.src = playlist[index].url;
                 audioPlayer.play();
             }
         }
@@ -78,21 +127,28 @@
             }
         }
 
-        function savePlaylist() {
-            localStorage.setItem("playlist", JSON.stringify(playlist));
-        }
+        audioPlayer.addEventListener("timeupdate", function() {
+            let currentTime = audioPlayer.currentTime;
+            let duration = audioPlayer.duration || 0;
+            let progressPercent = (currentTime / duration) * 100;
+            progress.style.width = progressPercent + "%";
+            
+            currentTimeEl.textContent = formatTime(currentTime);
+            durationEl.textContent = formatTime(duration);
+        });
 
-        function loadSavedPlaylist() {
-            let savedPlaylist = localStorage.getItem("playlist");
-            if (savedPlaylist) {
-                playlist = JSON.parse(savedPlaylist);
-                if (playlist.length > 0) {
-                    loadTrack(0);
-                }
-            }
-        }
+        progressBar.addEventListener("click", function(event) {
+            let barWidth = progressBar.clientWidth;
+            let clickX = event.offsetX;
+            let duration = audioPlayer.duration;
+            audioPlayer.currentTime = (clickX / barWidth) * duration;
+        });
 
-        window.onload = loadSavedPlaylist;
+        function formatTime(seconds) {
+            let mins = Math.floor(seconds / 60);
+            let secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
     </script>
 </body>
 </html>

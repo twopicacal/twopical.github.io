@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP3 Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>MP3 Player</h1>
+    <input type="file" id="fileInput" accept="audio/mp3" multiple>
+    <br><br>
+    <audio id="audioPlayer" controls></audio>
+    <br><br>
+    <button onclick="prevTrack()">Back</button>
+    <button onclick="togglePlayPause()">Play/Pause</button>
+    <button onclick="nextTrack()">Next</button>
+    
+    <script>
+        let audioPlayer = document.getElementById("audioPlayer");
+        let fileInput = document.getElementById("fileInput");
+        let playlist = [];
+        let currentTrackIndex = 0;
+
+        fileInput.addEventListener("change", function(event) {
+            playlist = Array.from(event.target.files);
+            if (playlist.length > 0) {
+                currentTrackIndex = 0;
+                loadTrack(currentTrackIndex);
+            }
+        });
+
+        function loadTrack(index) {
+            if (playlist.length > 0) {
+                let fileURL = URL.createObjectURL(playlist[index]);
+                audioPlayer.src = fileURL;
+                audioPlayer.play();
+            }
+        }
+
+        function togglePlayPause() {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+        }
+
+        function prevTrack() {
+            if (currentTrackIndex > 0) {
+                currentTrackIndex--;
+                loadTrack(currentTrackIndex);
+            }
+        }
+
+        function nextTrack() {
+            if (currentTrackIndex < playlist.length - 1) {
+                currentTrackIndex++;
+                loadTrack(currentTrackIndex);
+            }
+        }
+    </script>
+</body>
+</html>

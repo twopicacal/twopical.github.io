@@ -1,0 +1,27 @@
+name: Upload MP3 Files
+
+on:
+  repository_dispatch:
+    types: [upload-mp3]
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Decode and save MP3 file
+        run: |
+          mkdir -p uploads
+          echo "${{ github.event.client_payload.file_content }}" | base64 --decode > uploads/${{ github.event.client_payload.file_name }}
+
+      - name: Commit and push file
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add uploads/${{ github.event.client_payload.file_name }}
+          git commit -m "Add MP3: ${{ github.event.client_payload.file_name }}"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Built-in GitHub Actions token
